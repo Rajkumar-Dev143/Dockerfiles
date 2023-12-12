@@ -1,0 +1,28 @@
+# Use the official OpenJDK 11 base image
+FROM openjdk:11-jre-slim
+
+# Set environment variables
+ENV WILDFLY_VERSION 14.0.1.Final
+ENV JBOSS_HOME /opt/wildfly
+
+# Download and install WildFly
+WORKDIR /opt
+RUN apt-get update && \
+    apt-get install -y wget && \
+    wget https://download.jboss.org/wildfly/${WILDFLY_VERSION}/wildfly-${WILDFLY_VERSION}.tar.gz && \
+    tar xf wildfly-${WILDFLY_VERSION}.tar.gz && \
+    mv wildfly-${WILDFLY_VERSION} ${JBOSS_HOME} && \
+    rm wildfly-${WILDFLY_VERSION}.tar.gz && \
+    apt-get remove -y wget && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY wildfly-pkcs12.pfx /opt/wildfly/standalone/configuration
+COPY standalone.xml /opt/wildfly/standalone/configuration
+ENV JAVA_OPTS "-Xms64m -Xmx1024m -XX:MetaspaceSize=256M -XX:MaxMetaspaceSize=2048m -Djava.net.preferIPv4Stack=true"
+RUN /opt/wildfly/bin/add-user.sh NH1650 Nslhub@123 --silent
+# Expose the ports
+EXPOSE 8282 9993
+
+# Start WildFly in standalone mode
+CMD ["/opt/wildfly/bin/standalone.sh", "-b", "0.0.0.0", "-bmanagement", "0.0.0.0"]
